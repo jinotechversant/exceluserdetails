@@ -2,17 +2,16 @@ component displayname="userdetails"
     {
         public function processExcel(excelQuery)
             {
+                local.hasData   =   false;
+
                 for(row IN excelQuery)
                     {
                         local.checkEmptyValues = checkEmpty(row);
                         if(local.checkEmptyValues)
                             {
-                               writeDump(row['Address'])
-                            }
-                        else 
-                            {
-                                writeOutput('error');
-                            }       
+                                local.hasData = true;
+                                writeDump(row)
+                            }      
                     }
             }
 
