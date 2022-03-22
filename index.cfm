@@ -1,8 +1,7 @@
-<cfset variables.status = structNew() />
-<cfset userObj          = createObject("component", "local.cfc.userdetails")>
+<cfset variables.status     = structNew() />
+<cfset variables.userObj    = createObject("component", "local.cfc.userdetails")>
 <cfif cgi.request_method EQ "post">
-    <cfparam name="form.excelFile" default="">
-
+    <cfparam  name="form.excelFile" default="">
     <cfif len(trim(form.excelFile))>
             <cftry>
                     <cffile action            = "upload" 
@@ -20,10 +19,17 @@
                             excludeHeaderRow = true
                             query            = "queryData" 
                     />
-                    <cfset variables.processExcel  = userObj.processExcel(queryData) />
+                    <cfset variables.processExcel  =  variables.userObj.processMyExcel(queryData) />
+                    <cfif structKeyExists(variables, "processExcel") AND variables.processExcel EQ "empty_excel">
+                        <cfset variables.status.data    = 'error' />
+                        <cfset variables.status.message = 'No data to process. You have uploaded an empty excel file.' />
+                    <cfelse>
+                        <cfset variables.status.data    = 'success' />
+                        <cfset variables.status.message = 'No issues found' />
+                    </cfif>
                 <cfcatch type="any">
                     <cfset variables.status.data    = 'error' />
-                    <cfset variables.status.message = cfcatch.message />
+                    <cfset variables.status.message = 'Exception: #cfcatch.message#' />
                 </cfcatch>
             </cftry>
         <cfelse>

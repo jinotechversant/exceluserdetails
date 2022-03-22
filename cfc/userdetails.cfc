@@ -1,17 +1,23 @@
 component displayname="userdetails"
     {
-        public function processExcel(excelQuery)
+        public function processMyExcel(excelQuery)
             {
                 local.hasData   =   false;
 
                 for(row IN excelQuery)
                     {
-                        local.checkEmptyValues = checkEmpty(row);
-                        if(local.checkEmptyValues)
+                        local.checkEmptyExcel = checkIfEmptyExcel(row);
+                        if(local.checkEmptyExcel)
                             {
                                 local.hasData = true;
                                 writeDump(row)
                             }      
+                    }
+
+
+                if(local.hasData == false)
+                    {
+                        return 'empty_excel';
                     }
             }
 
@@ -41,10 +47,13 @@ component displayname="userdetails"
                     }
             }
 
-        private function checkEmpty(row)
+        private function checkEmptyColumns(row)
             {
-                /*Checks for empty rows*/
+                
+            }
 
+        private function checkIfEmptyExcel(row)
+            {
                 if(len(trim(row['First Name'])) > 0 
                     AND len(trim(row['Last Name'])) > 0  
                         AND len(trim(row['Email'])) > 0 
