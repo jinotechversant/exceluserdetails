@@ -61,19 +61,19 @@ component displayname="userdetails"
                 if(len(trim(row['Last Name'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'Last Name is missing';
+                        local.resultArray[2]    =   'Last Name is missing';
                     }
 
                 if(len(trim(row['Email'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'Email is missing';
+                        local.resultArray[3]    =   'Email is missing';
                     }
 
                 if(len(trim(row['Phone'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'Phone is missing';
+                        local.resultArray[4]    =   'Phone is missing';
                     }    
                 
                 if(len(trim(row['DOB'])) === 0)
