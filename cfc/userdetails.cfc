@@ -11,7 +11,14 @@ component displayname="userdetails"
                             {
                                 local.hasData           = true;
                                 local.validateColumns   = checkEmptyColumns(row);
-                                writeDump(local.validateColumns);
+                                if(local.validateColumns === 'success')
+                                    {
+                                        local.addNewUser   = addUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
+                                    }
+                                else 
+                                    {
+
+                                    }
                             }      
                     }
 
@@ -39,7 +46,7 @@ component displayname="userdetails"
             {
                 try
                     {
-                        local.result = queryExecute("SELECT GROUP_CONCAT(roles) AS roles FROM roles");
+                        local.result = queryExecute("SELECT GROUP_CONCAT(roles) AS roles FROM roles",{returntype="array"});
                         return local.result;
                     }
                 catch(Exception e)
@@ -48,55 +55,89 @@ component displayname="userdetails"
                     }
             }
 
+        public function getEmail(email)
+            {
+                try 
+                    {
+                        local.result = queryExecute("SELECT COUNT(*) AS total FROM users WHERE email = :email",
+                                                        {email: {cfsqltype: "cf_sql_varchar", value: email}},
+                                                        {returntype="array"}
+                                                    );
+                        return local.result;	
+                    }
+                catch(Exception e) 
+                    {
+                        return 'error';
+                    }
+            }
+
         private function checkEmptyColumns(row)
             {
                 local.hasError    = false;
-                local.resultArray = arrayNew(1);
+                local.resultArray = arrayNew(1, true);
                 if(len(trim(row['First Name'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'First Name is missing';
+                        local.resultArray.append('First Name is missing');
                     }
 
                 if(len(trim(row['Last Name'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[2]    =   'Last Name is missing';
+                        local.resultArray.append('Last Name is missing');
                     }
 
                 if(len(trim(row['Email'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[3]    =   'Email is missing';
+                        local.resultArray.append('Email is missing');
+                    }
+                else 
+                    {
+                        local.duplicateEmail      =   getEmail(row['Email']);
+                        if(local.duplicateEmail[1].total > 0)
+                            {
+                                local.hasError          =   true;
+                                local.resultArray.append('Duplicate email entry found');
+                            }
                     }
 
                 if(len(trim(row['Phone'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[4]    =   'Phone is missing';
+                        local.resultArray.append('Phone is missing');
                     }    
                 
                 if(len(trim(row['DOB'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'DOB is missing';
+                        local.resultArray.append('DOB is missing');
                     }
 
                 if(len(trim(row['Address'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'Address is missing';
+                        local.resultArray.append('Address is missing');
                     }    
 
                 if(len(trim(row['Role'])) === 0)
                     {
                         local.hasError          =   true;
-                        local.resultArray[1]    =   'Role is missing';
+                        local.resultArray.append('Role is missing');
+                    }
+                else 
+                    {
+                        local.roleGroupSet      =   getRoles();
+                        if(NOT findNoCase(row['Role'], local.roleGroupSet.roles))
+                            {
+                                local.hasError          =   true;
+                                local.resultArray.append('Role is not valid');
+                            }
                     }
 
                 if(local.hasError === false)
                     {
-                        local.resultArray[1]    =   'success';
+                        local.resultArray.append('success');
                     }
 
                 return arrayToList(local.resultArray);
@@ -118,6 +159,47 @@ component displayname="userdetails"
                                             {
                                                 return false;
                                             }
+            }
+
+        private function addUser(first_name, last_name, address, email, phone, dob, role)
+            {
+                try
+                    {
+                        result = queryExecute("INSERT INTO users (
+                                                            first_name, 
+                                                            last_name, 
+                                                            address, 
+                                                            email, 
+                                                            phone, 
+                                                            dob,
+                                                            role
+                                                        ) 
+                                                VALUES 
+                                                    (	
+                                                        :first_name,
+                                                        :last_name,
+                                                        :address,
+                                                        :email,
+                                                        :phone,
+                                                        :dob,
+                                                        :role
+                                                    )",
+                                                    {
+                                                        first_name: { cfsqltype: "cf_sql_varchar", value: first_name },
+                                                        last_name: { cfsqltype: "cf_sql_varchar", value: last_name },
+                                                        address: { cfsqltype: "cf_sql_varchar", value: address },
+                                                        email: { cfsqltype: "cf_sql_varchar", value: email },
+                                                        phone: { cfsqltype: "cf_sql_varchar", value: phone },
+                                                        dob: { cfsqltype: "cf_sql_date", value: dob },
+                                                        role: { cfsqltype: "cf_sql_varchar", value: role }
+                                                    }, 
+                                                    { result="resultset" });
+                        return	resultset.generatedKey;
+                    }
+                catch(Exception e)
+                    {
+                        return 'error';
+                    }
             }
 
     }
