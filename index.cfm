@@ -7,7 +7,7 @@
                     <cffile action            = "upload" 
                         fileField             = "excelFile" 
                         destination           = "C:\ColdFusion2021\cfusion\wwwroot\userdetails\uploads\" 
-                        allowedExtensions     = ".xlsx"
+                        allowedExtensions     = ".xlsx,.xls"
                         nameConflict          = "overwrite"
                         result                =  variables.excelData  
                     > 
@@ -25,9 +25,9 @@
                         <cfset variables.status.message = 'No data to process. You have uploaded an empty excel file.' />
                     <cfelse>
                         <cfset variables.status.data    = 'success' />
-                        <cfset variables.status.message = 'No issues found' />
+                        <cfset variables.status.message = 'Download Excel Result : <a href="./uploads/Upload_Result.xlsx">Download</a>' />
                     </cfif>
-                <cfcatch type="any">
+                <cfcatch type="exception">
                     <cfset variables.status.data    = 'error' />
                     <cfset variables.status.message = 'Exception: #cfcatch.message#' />
                 </cfcatch>
@@ -52,8 +52,8 @@
                 <div class="px-4 py-5 my-5 text-center">
                     <div class="row">
                         <div class="col-lg-4">
-                            <a href="" class="btn btn-sm btn-success">Plain Template</a>
-                            <a href="" class="btn btn-sm btn-info">Template With Data</a>
+                            <a href="./cfc/userdetails.cfc?method=plainExcel" class="btn btn-sm btn-success">Plain Template</a>
+                            <a href="./cfc/userdetails.cfc?method=templateData" class="btn btn-sm btn-info">Template With Data</a>
                         </div>
                         <div class="col-lg-4">
                             
