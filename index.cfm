@@ -7,7 +7,7 @@
                     <cffile action            = "upload" 
                         fileField             = "excelFile" 
                         destination           = "C:\ColdFusion2021\cfusion\wwwroot\userdetails\uploads\" 
-                        allowedExtensions     = ".xlsx"
+                        allowedExtensions     = ".xlsx,.xls"
                         nameConflict          = "overwrite"
                         result                =  variables.excelData  
                     > 
@@ -25,7 +25,7 @@
                         <cfset variables.status.message = 'No data to process. You have uploaded an empty excel file.' />
                     <cfelse>
                         <cfset variables.status.data    = 'success' />
-                        <cfset variables.status.message = 'Download Excel Result : <a href="./uploads/Upload_Result.xls">Download</a>' />
+                        <cfset variables.status.message = 'Download Excel Result : <a href="./uploads/Upload_Result.xlsx">Download</a>' />
                     </cfif>
                 <cfcatch type="exception">
                     <cfset variables.status.data    = 'error' />
