@@ -47,12 +47,12 @@ component displayname="userdetails"
                         );
             }
 
-        public function processMyExcel(excelQuery)
+        public function processMyExcel(required query excelQuery)
             {
                 local.hasData                   =   false;
                 local.excelOutputQuery          =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result");
 
-                for(row IN excelQuery)
+                for(row IN arguments.excelQuery)
                     {
                         local.checkEmptyExcel = checkIfEmptyExcel(row);
                         if(local.checkEmptyExcel)
@@ -135,12 +135,12 @@ component displayname="userdetails"
                     }
             }
 
-        public function getEmail(email)
+        public function getEmail(required string email)
             {
                 try 
                     {
                         local.result = queryExecute("SELECT COUNT(*) AS total FROM users WHERE email = :email",
-                                                        {email: {cfsqltype: "cf_sql_varchar", value: email}},
+                                                        {email: {cfsqltype: "cf_sql_varchar", value: arguments.email}},
                                                         {returntype="array"}
                                                     );
                         return local.result;	
@@ -151,30 +151,30 @@ component displayname="userdetails"
                     }
             }
 
-        private function checkEmptyColumns(row)
+        private function checkEmptyColumns(any row)
             {
                 local.hasError    = false;
                 local.resultArray = arrayNew(1, true);
-                if(len(trim(row['First Name'])) === 0)
+                if(len(trim(arguments.row['First Name'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('First Name is missing');
                     }
 
-                if(len(trim(row['Last Name'])) === 0)
+                if(len(trim(arguments.row['Last Name'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('Last Name is missing');
                     }
 
-                if(len(trim(row['Email'])) === 0)
+                if(len(trim(arguments.row['Email'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('Email is missing');
                     }
                 else 
                     {
-                        local.duplicateEmail      =   getEmail(row['Email']);
+                        local.duplicateEmail      =   getEmail(arguments.row['Email']);
                         if(local.duplicateEmail[1].total > 0)
                             {
                                 local.hasError          =   true;
@@ -182,25 +182,25 @@ component displayname="userdetails"
                             }
                     }
 
-                if(len(trim(row['Phone'])) === 0)
+                if(len(trim(arguments.row['Phone'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('Phone is missing');
                     }    
                 
-                if(len(trim(row['DOB'])) === 0)
+                if(len(trim(arguments.row['DOB'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('DOB is missing');
                     }
 
-                if(len(trim(row['Address'])) === 0)
+                if(len(trim(arguments.row['Address'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('Address is missing');
                     }    
 
-                if(len(trim(row['Role'])) === 0)
+                if(len(trim(arguments.row['Role'])) === 0)
                     {
                         local.hasError          =   true;
                         local.resultArray.append('Role is missing');
@@ -208,7 +208,7 @@ component displayname="userdetails"
                 else 
                     {
                         local.roleGroupSet      =   getRoles();
-                        if(NOT findNoCase(row['Role'], local.roleGroupSet.roles))
+                        if(NOT findNoCase(arguments.row['Role'], local.roleGroupSet.roles))
                             {
                                 local.hasError          =   true;
                                 local.resultArray.append('Role is not valid');
@@ -223,15 +223,15 @@ component displayname="userdetails"
                 return arrayToList(local.resultArray);
             }
 
-        private function checkIfEmptyExcel(row)
+        private function checkIfEmptyExcel(any row)
             {
-                if(len(trim(row['First Name'])) > 0 
-                    OR len(trim(row['Last Name'])) > 0  
-                        OR len(trim(row['Email'])) > 0 
-                            OR len(trim(row['Phone'])) > 0
-                                OR len(trim(row['DOB'])) > 0
-                                    OR len(trim(row['Address'])) > 0
-                                        OR len(trim(row['Role'])) > 0)
+                if(len(trim(arguments.row['First Name'])) > 0 
+                    OR len(trim(arguments.row['Last Name'])) > 0  
+                        OR len(trim(arguments.row['Email'])) > 0 
+                            OR len(trim(arguments.row['Phone'])) > 0
+                                OR len(trim(arguments.row['DOB'])) > 0
+                                    OR len(trim(arguments.row['Address'])) > 0
+                                        OR len(trim(arguments.row['Role'])) > 0)
                                             {
                                                 return true;
                                             }
