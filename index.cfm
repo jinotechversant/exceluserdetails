@@ -52,8 +52,8 @@
                 <div class="px-4 py-5 my-5 text-center">
                     <div class="row">
                         <div class="col-lg-4">
-                            <a href="./cfc/userdetails.cfc?method=plainExcel" class="btn btn-sm btn-success">Plain Template</a>
-                            <a href="./cfc/userdetails.cfc?method=templateData" class="btn btn-sm btn-info">Template With Data</a>
+                            <a href="./cfc/userdetails.cfc?method=downloadData&type=plain" class="btn btn-sm btn-success">Plain Template</a>
+                            <a href="./cfc/userdetails.cfc?method=downloadData&type=data" class="btn btn-sm btn-info">Template With Data</a>
                         </div>
                         <div class="col-lg-4">
                             

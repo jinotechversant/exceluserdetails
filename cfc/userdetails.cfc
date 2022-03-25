@@ -1,50 +1,54 @@
 component displayname="userdetails"
     {
-        remote function plainExcel()
+        remote function downloadData(required string type)
             {
-                objSpreadsheet          = SpreadsheetNew("Sheet1",true);
-                SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role" );
-                SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
-                cfheader(
-                            name="Content-Disposition",
-                            value="attachment; filename=Plain_Template.xlsx"
-                        );
-                cfcontent(
-                            type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            variable="#SpreadsheetReadBinary( objSpreadsheet )#"
-                        );
-
-            }
-
-        remote function templateData()
-            {
-
-                local.userSet           =   getUsers();
-                local.excelOutputQuery  =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result");
-                for(local.row IN local.userSet)
+                if(arguments.type == 'plain')
                     {
-                        queryAddRow(local.excelOutputQuery);
-                        querySetCell(local.excelOutputQuery, "FirstName", local.row.FIRST_NAME);
-                        querySetCell(local.excelOutputQuery, "LastName", local.row.LAST_NAME);
-                        querySetCell(local.excelOutputQuery, "Address", local.row.ADDRESS);
-                        querySetCell(local.excelOutputQuery, "Email", local.row.EMAIL);
-                        querySetCell(local.excelOutputQuery, "Phone", local.row.PHONE);
-                        querySetCell(local.excelOutputQuery, "DOB", local.row.DOB);
-                        querySetCell(local.excelOutputQuery, "Role", local.row.ROLE);
+                        objSpreadsheet          = SpreadsheetNew("Sheet1",true);
+                        SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role" );
+                        SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
+                        cfheader(
+                                    name="Content-Disposition",
+                                    value="attachment; filename=Plain_Template.xlsx"
+                                );
+                        cfcontent(
+                                    type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    variable="#SpreadsheetReadBinary( objSpreadsheet )#"
+                                );
                     }
-                
-                objSpreadsheet          =   SpreadsheetNew("Sheet1",true);
-                SpreadsheetAddRow(objSpreadsheet, "First Name,Last Name,Address,Email,Phone,DOB,Role" );
-                SpreadsheetFormatRow(objSpreadsheet, {bold=true, alignment="center"}, 1 );
-                spreadsheetAddRows(objSpreadsheet, local.excelOutputQuery);
-                cfheader(
-                            name="Content-Disposition",
-                            value="attachment; filename=Template_with_data.xlsx"
-                        );
-                cfcontent(
-                            type="application/vnd.ms-excel.sheet.macroEnabled.12",
-                            variable="#SpreadsheetReadBinary( objSpreadsheet )#"
-                        );
+                else if(arguments.type == 'data')
+                    {
+                        local.userSet           =   getUsers();
+                        local.excelOutputQuery  =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result");
+                        for(local.row IN local.userSet)
+                            {
+                                queryAddRow(local.excelOutputQuery);
+                                querySetCell(local.excelOutputQuery, "FirstName", local.row.FIRST_NAME);
+                                querySetCell(local.excelOutputQuery, "LastName", local.row.LAST_NAME);
+                                querySetCell(local.excelOutputQuery, "Address", local.row.ADDRESS);
+                                querySetCell(local.excelOutputQuery, "Email", local.row.EMAIL);
+                                querySetCell(local.excelOutputQuery, "Phone", local.row.PHONE);
+                                querySetCell(local.excelOutputQuery, "DOB", local.row.DOB);
+                                querySetCell(local.excelOutputQuery, "Role", local.row.ROLE);
+                            }
+                        
+                        objSpreadsheet          =   SpreadsheetNew("Sheet1",true);
+                        SpreadsheetAddRow(objSpreadsheet, "First Name,Last Name,Address,Email,Phone,DOB,Role" );
+                        SpreadsheetFormatRow(objSpreadsheet, {bold=true, alignment="center"}, 1 );
+                        spreadsheetAddRows(objSpreadsheet, local.excelOutputQuery);
+                        cfheader(
+                                    name="Content-Disposition",
+                                    value="attachment; filename=Template_with_data.xlsx"
+                                );
+                        cfcontent(
+                                    type="application/vnd.ms-excel.sheet.macroEnabled.12",
+                                    variable="#SpreadsheetReadBinary( objSpreadsheet )#"
+                                );
+                    }
+                else 
+                    {
+                        writeOutput('Invalid Type');
+                    }
             }
 
         public function processMyExcel(required query excelQuery)
