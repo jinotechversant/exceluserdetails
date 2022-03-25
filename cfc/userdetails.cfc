@@ -1,50 +1,54 @@
 component displayname="userdetails"
     {
-        remote function plainExcel()
+        remote function downloadData(required string type)
             {
-                objSpreadsheet          = SpreadsheetNew("Sheet1",true);
-                SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role" );
-                SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
-                cfheader(
-                            name="Content-Disposition",
-                            value="attachment; filename=Plain_Template.xlsx"
-                        );
-                cfcontent(
-                            type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            variable="#SpreadsheetReadBinary( objSpreadsheet )#"
-                        );
-
-            }
-
-        remote function templateData()
-            {
-
-                local.userSet           =   getUsers();
-                local.excelOutputQuery  =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result");
-                for(local.row IN local.userSet)
+                if(arguments.type == 'plain')
                     {
-                        queryAddRow(local.excelOutputQuery);
-                        querySetCell(local.excelOutputQuery, "FirstName", local.row.FIRST_NAME);
-                        querySetCell(local.excelOutputQuery, "LastName", local.row.LAST_NAME);
-                        querySetCell(local.excelOutputQuery, "Address", local.row.ADDRESS);
-                        querySetCell(local.excelOutputQuery, "Email", local.row.EMAIL);
-                        querySetCell(local.excelOutputQuery, "Phone", local.row.PHONE);
-                        querySetCell(local.excelOutputQuery, "DOB", local.row.DOB);
-                        querySetCell(local.excelOutputQuery, "Role", local.row.ROLE);
+                        objSpreadsheet          = SpreadsheetNew("Sheet1",true);
+                        SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role" );
+                        SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
+                        cfheader(
+                                    name="Content-Disposition",
+                                    value="attachment; filename=Plain_Template.xlsx"
+                                );
+                        cfcontent(
+                                    type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                                    variable="#SpreadsheetReadBinary( objSpreadsheet )#"
+                                );
                     }
-                
-                objSpreadsheet          =   SpreadsheetNew("Sheet1",true);
-                SpreadsheetAddRow(objSpreadsheet, "First Name,Last Name,Address,Email,Phone,DOB,Role" );
-                SpreadsheetFormatRow(objSpreadsheet, {bold=true, alignment="center"}, 1 );
-                spreadsheetAddRows(objSpreadsheet, local.excelOutputQuery);
-                cfheader(
-                            name="Content-Disposition",
-                            value="attachment; filename=Template_with_data.xlsx"
-                        );
-                cfcontent(
-                            type="application/vnd.ms-excel.sheet.macroEnabled.12",
-                            variable="#SpreadsheetReadBinary( objSpreadsheet )#"
-                        );
+                else if(arguments.type == 'data')
+                    {
+                        local.userSet           =   getUsers();
+                        local.excelOutputQuery  =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result");
+                        for(local.row IN local.userSet)
+                            {
+                                queryAddRow(local.excelOutputQuery);
+                                querySetCell(local.excelOutputQuery, "FirstName", local.row.FIRST_NAME);
+                                querySetCell(local.excelOutputQuery, "LastName", local.row.LAST_NAME);
+                                querySetCell(local.excelOutputQuery, "Address", local.row.ADDRESS);
+                                querySetCell(local.excelOutputQuery, "Email", local.row.EMAIL);
+                                querySetCell(local.excelOutputQuery, "Phone", local.row.PHONE);
+                                querySetCell(local.excelOutputQuery, "DOB", local.row.DOB);
+                                querySetCell(local.excelOutputQuery, "Role", local.row.ROLE);
+                            }
+                        
+                        objSpreadsheet          =   SpreadsheetNew("Sheet1",true);
+                        SpreadsheetAddRow(objSpreadsheet, "First Name,Last Name,Address,Email,Phone,DOB,Role" );
+                        SpreadsheetFormatRow(objSpreadsheet, {bold=true, alignment="center"}, 1 );
+                        spreadsheetAddRows(objSpreadsheet, local.excelOutputQuery);
+                        cfheader(
+                                    name="Content-Disposition",
+                                    value="attachment; filename=Template_with_data.xlsx"
+                                );
+                        cfcontent(
+                                    type="application/vnd.ms-excel.sheet.macroEnabled.12",
+                                    variable="#SpreadsheetReadBinary( objSpreadsheet )#"
+                                );
+                    }
+                else 
+                    {
+                        writeOutput('Invalid Type');
+                    }
             }
 
         public function processMyExcel(required query excelQuery)
@@ -63,7 +67,7 @@ component displayname="userdetails"
                                 
                                 if(local.validateColumns === 'success')
                                     {
-                                        local.addNewUser                    =   addUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
+                                        local.addNewUser                    =   processUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
                                         queryAddRow(local.excelOutputQuery);
                                         querySetCell(local.excelOutputQuery, "FirstName", row['First Name']);
                                         querySetCell(local.excelOutputQuery, "LastName", row['Last Name']);
@@ -172,15 +176,6 @@ component displayname="userdetails"
                         local.hasError          =   true;
                         local.resultArray.append('Email is missing');
                     }
-                else 
-                    {
-                        local.duplicateEmail      =   getEmail(arguments.row['Email']);
-                        if(local.duplicateEmail[1].total > 0)
-                            {
-                                local.hasError          =   true;
-                                local.resultArray.append('Duplicate email entry found');
-                            }
-                    }
 
                 if(len(trim(arguments.row['Phone'])) === 0)
                     {
@@ -241,40 +236,65 @@ component displayname="userdetails"
                                             }
             }
 
-        private function addUser(first_name, last_name, address, email, phone, dob, role)
+        private function processUser(first_name, last_name, address, email, phone, dob, role)
             {
                 try
                     {
-                        result = queryExecute("INSERT INTO users (
-                                                            first_name, 
-                                                            last_name, 
-                                                            address, 
-                                                            email, 
-                                                            phone, 
-                                                            dob,
-                                                            role
-                                                        ) 
-                                                VALUES 
-                                                    (	
-                                                        :first_name,
-                                                        :last_name,
-                                                        :address,
-                                                        :email,
-                                                        :phone,
-                                                        :dob,
-                                                        :role
-                                                    )",
-                                                    {
-                                                        first_name: { cfsqltype: "cf_sql_varchar", value: first_name },
-                                                        last_name: { cfsqltype: "cf_sql_varchar", value: last_name },
-                                                        address: { cfsqltype: "cf_sql_varchar", value: address },
-                                                        email: { cfsqltype: "cf_sql_varchar", value: email },
-                                                        phone: { cfsqltype: "cf_sql_varchar", value: phone },
-                                                        dob: { cfsqltype: "cf_sql_date", value: dob },
-                                                        role: { cfsqltype: "cf_sql_varchar", value: role }
-                                                    }, 
-                                                    { result="resultset" });
-                        return	resultset.generatedKey;
+                        local.duplicateEmail      =   getEmail(arguments.email);
+                        if(local.duplicateEmail[1].total > 0)
+                            {
+                                result = queryExecute("UPDATE users 
+                                                                SET 
+                                                                    first_name  = :first_name, 
+                                                                    last_name   = :last_name, 
+                                                                    address     = :address, 
+                                                                    phone       = :phone, 
+                                                                    dob         = :dob
+                                                                WHERE   
+                                                                    email = :email",
+                                                            {
+                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
+                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
+                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
+                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
+                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
+                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
+                                                            }, 
+                                                            { result="resultset" });
+                                return	resultset;
+                            }
+                        else 
+                            {
+                                result = queryExecute("INSERT INTO users (
+                                                                    first_name, 
+                                                                    last_name, 
+                                                                    address, 
+                                                                    email, 
+                                                                    phone, 
+                                                                    dob
+                                                                ) 
+                                                        VALUES 
+                                                            (	
+                                                                :first_name,
+                                                                :last_name,
+                                                                :address,
+                                                                :email,
+                                                                :phone,
+                                                                :dob
+                                                            )",
+                                                            {
+                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
+                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
+                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
+                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
+                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
+                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
+                                                            }, 
+                                                            { result="resultset" });
+                                return	resultset.generatedKey;
+                            }
+
+                        
                     }
                 catch(Exception e)
                     {
