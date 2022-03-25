@@ -105,7 +105,7 @@
                                         <td>#userData.email#</td>
                                         <td>#userData.phone#</td>
                                         <td>#userData.dob#</td>
-                                        <td>#userData.role#</td>
+                                        <td></td>
                                     </tr>
                                 </cfloop>
                             </tbody>

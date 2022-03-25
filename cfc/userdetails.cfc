@@ -67,7 +67,7 @@ component displayname="userdetails"
                                 
                                 if(local.validateColumns === 'success')
                                     {
-                                        local.addNewUser                    =   addUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
+                                        local.addNewUser                    =   processUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
                                         queryAddRow(local.excelOutputQuery);
                                         querySetCell(local.excelOutputQuery, "FirstName", row['First Name']);
                                         querySetCell(local.excelOutputQuery, "LastName", row['Last Name']);
@@ -176,15 +176,6 @@ component displayname="userdetails"
                         local.hasError          =   true;
                         local.resultArray.append('Email is missing');
                     }
-                else 
-                    {
-                        local.duplicateEmail      =   getEmail(arguments.row['Email']);
-                        if(local.duplicateEmail[1].total > 0)
-                            {
-                                local.hasError          =   true;
-                                local.resultArray.append('Duplicate email entry found');
-                            }
-                    }
 
                 if(len(trim(arguments.row['Phone'])) === 0)
                     {
@@ -245,40 +236,65 @@ component displayname="userdetails"
                                             }
             }
 
-        private function addUser(first_name, last_name, address, email, phone, dob, role)
+        private function processUser(first_name, last_name, address, email, phone, dob, role)
             {
                 try
                     {
-                        result = queryExecute("INSERT INTO users (
-                                                            first_name, 
-                                                            last_name, 
-                                                            address, 
-                                                            email, 
-                                                            phone, 
-                                                            dob,
-                                                            role
-                                                        ) 
-                                                VALUES 
-                                                    (	
-                                                        :first_name,
-                                                        :last_name,
-                                                        :address,
-                                                        :email,
-                                                        :phone,
-                                                        :dob,
-                                                        :role
-                                                    )",
-                                                    {
-                                                        first_name: { cfsqltype: "cf_sql_varchar", value: first_name },
-                                                        last_name: { cfsqltype: "cf_sql_varchar", value: last_name },
-                                                        address: { cfsqltype: "cf_sql_varchar", value: address },
-                                                        email: { cfsqltype: "cf_sql_varchar", value: email },
-                                                        phone: { cfsqltype: "cf_sql_varchar", value: phone },
-                                                        dob: { cfsqltype: "cf_sql_date", value: dob },
-                                                        role: { cfsqltype: "cf_sql_varchar", value: role }
-                                                    }, 
-                                                    { result="resultset" });
-                        return	resultset.generatedKey;
+                        local.duplicateEmail      =   getEmail(arguments.email);
+                        if(local.duplicateEmail[1].total > 0)
+                            {
+                                result = queryExecute("UPDATE users 
+                                                                SET 
+                                                                    first_name  = :first_name, 
+                                                                    last_name   = :last_name, 
+                                                                    address     = :address, 
+                                                                    phone       = :phone, 
+                                                                    dob         = :dob
+                                                                WHERE   
+                                                                    email = :email",
+                                                            {
+                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
+                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
+                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
+                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
+                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
+                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
+                                                            }, 
+                                                            { result="resultset" });
+                                return	resultset;
+                            }
+                        else 
+                            {
+                                result = queryExecute("INSERT INTO users (
+                                                                    first_name, 
+                                                                    last_name, 
+                                                                    address, 
+                                                                    email, 
+                                                                    phone, 
+                                                                    dob
+                                                                ) 
+                                                        VALUES 
+                                                            (	
+                                                                :first_name,
+                                                                :last_name,
+                                                                :address,
+                                                                :email,
+                                                                :phone,
+                                                                :dob
+                                                            )",
+                                                            {
+                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
+                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
+                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
+                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
+                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
+                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
+                                                            }, 
+                                                            { result="resultset" });
+                                return	resultset.generatedKey;
+                            }
+
+                        
                     }
                 catch(Exception e)
                     {
