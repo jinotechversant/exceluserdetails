@@ -54,7 +54,7 @@ component displayname="userdetails"
         public function processMyExcel(required query excelQuery)
             {
                 local.hasData                   =   false;
-                local.excelOutputQuery          =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result");
+                local.excelOutputQuery          =   queryNew("FirstName, LastName, Address, Email, Phone, DOB, Role, Result, Flag");
 
                 for(row IN arguments.excelQuery)
                     {
@@ -76,7 +76,22 @@ component displayname="userdetails"
                                         querySetCell(local.excelOutputQuery, "Phone", row['Phone']);
                                         querySetCell(local.excelOutputQuery, "DOB", row['DOB']);
                                         querySetCell(local.excelOutputQuery, "Role", row['Role']);
-                                        querySetCell(local.excelOutputQuery, "Result", local.validateColumns);
+                                        
+                                        if(local.addNewUser == 0)
+                                            {
+                                                querySetCell(local.excelOutputQuery, "Result", 'Added');
+                                                querySetCell(local.excelOutputQuery, "Flag", '0');
+                                            }
+                                        else if(local.addNewUser == 1)
+                                            {
+                                                querySetCell(local.excelOutputQuery, "Result", 'Updated');
+                                                querySetCell(local.excelOutputQuery, "Flag", '1');
+                                            }
+                                        else 
+                                            {
+                                                querySetCell(local.excelOutputQuery, "Result", 'Database updation failed');
+                                                querySetCell(local.excelOutputQuery, "Flag", '2');
+                                            } 
                                     }
                                 else 
                                     {
@@ -89,6 +104,7 @@ component displayname="userdetails"
                                         querySetCell(local.excelOutputQuery, "DOB", row['DOB']);
                                         querySetCell(local.excelOutputQuery, "Role", row['Role']);
                                         querySetCell(local.excelOutputQuery, "Result", local.validateColumns);
+                                        querySetCell(local.excelOutputQuery, "Flag", '2');
                                     }
                             }      
                     }
@@ -100,9 +116,9 @@ component displayname="userdetails"
                 else 
                     {
                         local.sortedQuery =   QuerySort(local.excelOutputQuery,function(obj1,obj2){
-                            return compare(obj1.Result,obj2.Result)
+                            return compare(obj2.Flag,obj1.Flag)
                         });
-
+                        QueryDeleteColumn(local.excelOutputQuery,"Flag");
                         objSpreadsheet          = SpreadsheetNew("Sheet1",true);
                         SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result" );
                         SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
@@ -261,7 +277,7 @@ component displayname="userdetails"
                                                                 dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
                                                             }, 
                                                             { result="resultset" });
-                                return	resultset;
+                                return	1;
                             }
                         else 
                             {
@@ -291,10 +307,8 @@ component displayname="userdetails"
                                                                 dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
                                                             }, 
                                                             { result="resultset" });
-                                return	resultset.generatedKey;
-                            }
-
-                        
+                                return	0;
+                            }                        
                     }
                 catch(Exception e)
                     {
