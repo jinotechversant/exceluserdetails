@@ -51,6 +51,23 @@ component displayname="userdetails"
                     }
             }
 
+        public function downloadResults(required any jsonData)
+            {
+                local.queryData                 =   deserializeJSON(arguments.jsonData); 
+                local.objSpreadsheet            =   SpreadsheetNew("Sheet1",true);
+                SpreadsheetAddRow( local.objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result",1,1,true);
+                SpreadsheetFormatRow( local.objSpreadsheet, {bold=true, alignment="center"}, 1 );
+                spreadsheetAddRows(local.objSpreadsheet, local.queryData.DATA,2,1,true,[""],false);
+                cfheader(
+                            name="Content-Disposition",
+                            value="attachment; filename=Upload_Result.xlsx"
+                        );
+                cfcontent(
+                            type="application/vnd.ms-excel.sheet.macroEnabled.12",
+                            variable="#SpreadsheetReadBinary( local.objSpreadsheet )#"
+                        );                
+            }
+
         public function processMyExcel(required query excelQuery)
             {
                 local.hasData                   =   false;
@@ -67,7 +84,6 @@ component displayname="userdetails"
                                 
                                 if(local.validateColumns === 'success')
                                     {
-                                        local.addNewUser                    =   processUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
                                         queryAddRow(local.excelOutputQuery);
                                         querySetCell(local.excelOutputQuery, "FirstName", row['First Name']);
                                         querySetCell(local.excelOutputQuery, "LastName", row['Last Name']);
@@ -76,6 +92,8 @@ component displayname="userdetails"
                                         querySetCell(local.excelOutputQuery, "Phone", row['Phone']);
                                         querySetCell(local.excelOutputQuery, "DOB", row['DOB']);
                                         querySetCell(local.excelOutputQuery, "Role", row['Role']);
+
+                                        local.addNewUser                    =   processUser(row['First Name'], row['Last Name'], row['Address'], row['Email'], row['Phone'], row['DOB'], row['Role']);
                                         
                                         if(local.addNewUser == 0)
                                             {
@@ -119,13 +137,16 @@ component displayname="userdetails"
                             return compare(obj2.Flag,obj1.Flag)
                         });
                         QueryDeleteColumn(local.excelOutputQuery,"Flag");
+
+                        /*
                         objSpreadsheet          = SpreadsheetNew("Sheet1",true);
                         SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result" );
                         SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
                         spreadsheetAddRows(objSpreadsheet, local.excelOutputQuery);
                         local.filename = expandPath("./uploads/Upload_Result.xlsx")    
                         spreadsheetWrite(objSpreadsheet, local.filename, true);
-                        return 'success';
+                        */
+                        return local.excelOutputQuery;
                     }
             }
 
@@ -133,7 +154,25 @@ component displayname="userdetails"
             {
                 try 
                     {
-                        local.result = queryExecute("SELECT * FROM users");
+                        local.result = queryExecute("SELECT 
+                                                        user.id AS id, 
+                                                        user.first_name AS first_name, 
+                                                        user.last_name AS last_name, 
+                                                        user.address AS address, 
+                                                        user.email AS email, 
+                                                        user.phone AS phone, 
+                                                        user.dob AS dob, 
+                                                        GROUP_CONCAT(roles.roles) AS roles 
+                                                    FROM 
+                                                        users AS user 
+                                                    INNER JOIN 
+                                                        user_roles 
+                                                    ON 
+                                                        user_roles.user_id = user.id 
+                                                    INNER JOIN 
+                                                        roles ON roles.id = user_roles.role_id 
+                                                    GROUP BY 
+                                                        user.id");
                         return local.result;	
                     }
                 catch(Exception e) 
@@ -259,54 +298,57 @@ component displayname="userdetails"
                         local.duplicateEmail      =   getEmail(arguments.email);
                         if(local.duplicateEmail[1].total > 0)
                             {
-                                result = queryExecute("UPDATE users 
-                                                                SET 
-                                                                    first_name  = :first_name, 
-                                                                    last_name   = :last_name, 
-                                                                    address     = :address, 
-                                                                    phone       = :phone, 
-                                                                    dob         = :dob
-                                                                WHERE   
-                                                                    email = :email",
-                                                            {
-                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
-                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
-                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
-                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
-                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
-                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
-                                                            }, 
-                                                            { result="resultset" });
+                                result              =   queryExecute("UPDATE users 
+                                                                                SET 
+                                                                                    first_name  = :first_name, 
+                                                                                    last_name   = :last_name, 
+                                                                                    address     = :address, 
+                                                                                    phone       = :phone, 
+                                                                                    dob         = :dob
+                                                                                WHERE   
+                                                                                    email = :email",
+                                                                            {
+                                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
+                                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
+                                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
+                                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
+                                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
+                                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
+                                                                            }, 
+                                                                            { result="resultset" });
+
+                                local.updateRoles   =   processRoles(arguments.role, arguments.email);
                                 return	1;
                             }
                         else 
                             {
-                                result = queryExecute("INSERT INTO users (
-                                                                    first_name, 
-                                                                    last_name, 
-                                                                    address, 
-                                                                    email, 
-                                                                    phone, 
-                                                                    dob
-                                                                ) 
-                                                        VALUES 
-                                                            (	
-                                                                :first_name,
-                                                                :last_name,
-                                                                :address,
-                                                                :email,
-                                                                :phone,
-                                                                :dob
-                                                            )",
-                                                            {
-                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
-                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
-                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
-                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
-                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
-                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
-                                                            }, 
-                                                            { result="resultset" });
+                                result              =   queryExecute("INSERT INTO users (
+                                                                                    first_name, 
+                                                                                    last_name, 
+                                                                                    address, 
+                                                                                    email, 
+                                                                                    phone, 
+                                                                                    dob
+                                                                                ) 
+                                                                        VALUES 
+                                                                            (	
+                                                                                :first_name,
+                                                                                :last_name,
+                                                                                :address,
+                                                                                :email,
+                                                                                :phone,
+                                                                                :dob
+                                                                            )",
+                                                                            {
+                                                                                first_name: { cfsqltype: "cf_sql_varchar", value: arguments.first_name },
+                                                                                last_name: { cfsqltype: "cf_sql_varchar", value: arguments.last_name },
+                                                                                address: { cfsqltype: "cf_sql_varchar", value: arguments.address },
+                                                                                email: { cfsqltype: "cf_sql_varchar", value: arguments.email },
+                                                                                phone: { cfsqltype: "cf_sql_varchar", value: arguments.phone },
+                                                                                dob: { cfsqltype: "cf_sql_date", value: arguments.dob }
+                                                                            }, 
+                                                                            { result="resultset" });
+                                local.updateRoles   =   processRoles(arguments.role, arguments.email);                                
                                 return	0;
                             }                        
                     }
@@ -315,5 +357,105 @@ component displayname="userdetails"
                         return 'error';
                     }
             }
+
+
+        private function processRoles(required string roles, required string email)
+            {
+                local.rolesArray = listToArray(arguments.roles);
+                local.storeError = arrayNew(1);
+                if(arrayLen(rolesArray) > 0)
+                    {
+                        local.getId         =   getUserById(arguments.email);
+                        local.userId        =   local.getId['1'].id;
+                        local.deleteRoles   =   queryExecute("DELETE FROM user_roles WHERE user_id = :id", 
+                                                                    {
+                                                                        id: {
+                                                                                cfsqltype: "cf_sql_integer",
+                                                                                value: local.userId
+                                                                            }
+                                                                    }, 
+                                                                    {
+                                                                        result = "resultset"
+                                                                    });
+                        for(row in rolesArray)
+                            {
+                                local.getRoleId     =   getRoleById(row);
+                                local.roleID        =   local.getRoleId['1'].id;
+
+                                if(local.userId != 'error' AND local.roleID != 'eror')
+                                    {
+                                        local.result        =   queryExecute("INSERT INTO user_roles (
+                                                                                        user_id, 
+                                                                                        role_id
+                                                                                    ) 
+                                                                            VALUES 
+                                                                                (	
+                                                                                    :user_id,
+                                                                                    :role_id
+                                                                                )",
+                                                                                {
+                                                                                    user_id: { cfsqltype: "cf_sql_varchar", value: local.userId },
+                                                                                    role_id: { cfsqltype: "cf_sql_varchar", value: local.roleID }
+                                                                                }, 
+                                                                                { result="resultset" });
+                                    }
+                                else 
+                                    {
+                                        storeError.append('#row# not updated due to error.');   
+                                    }
+                                
+                            } 
+                    }
+
+                return arrayToList(storeError);
+            }
+
+        private function getUserById(required string email)
+            {
+                try
+                    {
+                        local.getUserId = queryExecute("SELECT id FROM users WHERE email = :email",  
+                                                    {
+                                                        email: {
+                                                                    cfsqltype: "cf_sql_varchar",
+                                                                    value: arguments.email
+                                                                }
+                                                    },
+                                                    {
+                                                        result     = "resultset",
+                                                        returntype = "array"
+                                                    });
+                        return  local.getUserId;
+                    }
+                catch(Exception e)
+                    {
+                        return 'error';
+                    }
+                
+            }
+
+        private function getRoleById(required string role)
+            {
+                try
+                    {
+                        local.getUserId = queryExecute("SELECT id FROM roles WHERE roles = :role",  
+                                                    {
+                                                        role: {
+                                                                    cfsqltype: "cf_sql_varchar",
+                                                                    value: arguments.role
+                                                                }
+                                                    },
+                                                    {
+                                                        result     = "resultset",
+                                                        returntype = "array"
+                                                    });
+                        return  local.getUserId;
+                    }
+                catch(Exception e)
+                    {
+                        return 'error';
+                    }
+                
+            }    
 
     }

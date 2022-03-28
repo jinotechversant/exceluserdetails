@@ -1,6 +1,9 @@
 <cfset variables.status     = structNew() />
-<cfset variables.userObj    = createObject("component", "local.cfc.userdetails")>
-<cfif cgi.request_method EQ "post">
+<cfset variables.userObj    = createObject("component", "local.cfc.userdetails") />
+<cfset variables.hasExcel   = false />
+<cfset variables.queryResultSet = '' />
+<cfset variables.downloadExcel  = '' />
+<cfif cgi.request_method EQ "post" AND form.formtype EQ 'submit_excel'>
     <cfparam  name="form.excelFile" default="">
     <cfif len(trim(form.excelFile))>
             <cftry>
@@ -20,12 +23,16 @@
                             query            = "queryData" 
                     />
                     <cfset variables.processExcel  =  variables.userObj.processMyExcel(queryData) />
-                    <cfif structKeyExists(variables, "processExcel") AND variables.processExcel EQ "empty_excel">
+                    <cfif isQuery(variables.processExcel) EQ false AND structKeyExists(variables, "processExcel") AND variables.processExcel EQ "empty_excel">
                         <cfset variables.status.data    = 'error' />
                         <cfset variables.status.message = 'No data to process. You have uploaded an empty excel file.' />
                     <cfelse>
-                        <cfset variables.status.data    = 'success' />
-                        <cfset variables.status.message = 'Download Excel Result : <a href="./uploads/Upload_Result.xlsx">Download</a>' />
+                        <cfset variables.status.data    =   'success' />
+                        <cfset variables.status.message =   'Your excel has been uploaded successfully.' />
+                        <cfif isQuery(variables.processExcel) EQ true>
+                            <cfset variables.hasExcel           =   true />
+                            <cfset variables.queryResultSet     =   variables.processExcel />
+                        </cfif>
                     </cfif>
                 <cfcatch type="exception">
                     <cfset variables.status.data    = 'error' />
@@ -36,6 +43,10 @@
             <cfset variables.status.data    = 'error' />
             <cfset variables.status.message = 'Please upload a valid excel file' />
     </cfif>
+</cfif>
+<cfif cgi.request_method EQ "post" AND form.formtype EQ 'submit_download'>
+    <cfset variables.jsonText           =   form.querytext />
+    <cfset variables.downloadExcel      =   variables.userObj.downloadResults(variables.jsonText) />
 </cfif>
 <!doctype html>
 <html lang="en">
@@ -56,7 +67,14 @@
                             <a href="./cfc/userdetails.cfc?method=downloadData&type=data" class="btn btn-sm btn-info">Template With Data</a>
                         </div>
                         <div class="col-lg-4">
-                            
+                            <cfif variables.hasExcel    ==   true>
+                                <cfset variables.querytojson    =  SerializeJSON(variables.queryResultSet) />
+                                <form action="" method="post">
+                                    <input type="hidden" name="formtype" value="submit_download" />
+                                    <textarea name="querytext" style="visibility:hidden;">#variables.querytojson#</textarea>
+                                    <button type="submit" class="btn btn-sm btn-success mb-3 col-lg-6">Download</button>
+                                </form>
+                            </cfif>
                         </div>
                         <div class="col-lg-4">
                             <form action="" method="post" enctype="multipart/form-data">
@@ -64,6 +82,7 @@
                                     <div class="col-lg-6">
                                         <input class="form-control form-control-sm" id="formFileSm" type="file" name="excelFile">
                                     </div>
+                                    <input type="hidden" name="formtype" value="submit_excel" />
                                     <button type="submit" class="btn btn-sm btn-success mb-3 col-lg-6">Upload</button>
                                 </div>
                             </form>
@@ -81,7 +100,6 @@
                                     </div>
                                 </cfif>   
                             </cfif>
-                        <cfset userData  = userObj.getUsers() />	
                         <table class="table">
                             <thead>
                             <tr>
@@ -96,6 +114,7 @@
                             </tr>
                             </thead>
                             <tbody>
+                                <cfset userData  = userObj.getUsers() />
                                 <cfloop query="userData">
                                     <tr>
                                         <th scope="row">#userData.id#</th>
@@ -105,6 +124,7 @@
                                         <td>#userData.email#</td>
                                         <td>#userData.phone#</td>
                                         <td>#userData.dob#</td>
+                                        <td>#userData.roles#</td>
                                         <td></td>
                                     </tr>
                                 </cfloop>
