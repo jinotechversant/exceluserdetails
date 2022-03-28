@@ -53,21 +53,18 @@ component displayname="userdetails"
 
         public function downloadResults(required any jsonData)
             {
-                local.queryData                 =   deserializeJSON(arguments.jsonData);
-
-                writeDump(local.queryData);
-                
+                local.queryData                 =   deserializeJSON(arguments.jsonData); 
                 local.objSpreadsheet            =   SpreadsheetNew("Sheet1",true);
-                SpreadsheetAddRow( local.objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result");
+                SpreadsheetAddRow( local.objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result",1,1,true);
                 SpreadsheetFormatRow( local.objSpreadsheet, {bold=true, alignment="center"}, 1 );
-                spreadsheetAddRows(local.objSpreadsheet, local.queryData.DATA);
+                spreadsheetAddRows(local.objSpreadsheet, local.queryData.DATA,2,1,true,[""],false);
                 cfheader(
                             name="Content-Disposition",
                             value="attachment; filename=Upload_Result.xlsx"
                         );
                 cfcontent(
                             type="application/vnd.ms-excel.sheet.macroEnabled.12",
-                            variable="#SpreadsheetReadBinary( objSpreadsheet )#"
+                            variable="#SpreadsheetReadBinary( local.objSpreadsheet )#"
                         );                
             }
 
