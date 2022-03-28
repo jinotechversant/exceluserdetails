@@ -51,6 +51,26 @@ component displayname="userdetails"
                     }
             }
 
+        public function downloadResults(required any jsonData)
+            {
+                local.queryData                 =   deserializeJSON(arguments.jsonData);
+
+                writeDump(local.queryData);
+                
+                local.objSpreadsheet            =   SpreadsheetNew("Sheet1",true);
+                SpreadsheetAddRow( local.objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result");
+                SpreadsheetFormatRow( local.objSpreadsheet, {bold=true, alignment="center"}, 1 );
+                spreadsheetAddRows(local.objSpreadsheet, local.queryData.DATA);
+                cfheader(
+                            name="Content-Disposition",
+                            value="attachment; filename=Upload_Result.xlsx"
+                        );
+                cfcontent(
+                            type="application/vnd.ms-excel.sheet.macroEnabled.12",
+                            variable="#SpreadsheetReadBinary( objSpreadsheet )#"
+                        );                
+            }
+
         public function processMyExcel(required query excelQuery)
             {
                 local.hasData                   =   false;
@@ -120,13 +140,16 @@ component displayname="userdetails"
                             return compare(obj2.Flag,obj1.Flag)
                         });
                         QueryDeleteColumn(local.excelOutputQuery,"Flag");
+
+                        /*
                         objSpreadsheet          = SpreadsheetNew("Sheet1",true);
                         SpreadsheetAddRow( objSpreadsheet, "First Name, Last Name, Address, Email, Phone, DOB, Role, Result" );
                         SpreadsheetFormatRow( objSpreadsheet, {bold=true, alignment="center"}, 1 );
                         spreadsheetAddRows(objSpreadsheet, local.excelOutputQuery);
                         local.filename = expandPath("./uploads/Upload_Result.xlsx")    
                         spreadsheetWrite(objSpreadsheet, local.filename, true);
-                        return 'success';
+                        */
+                        return local.excelOutputQuery;
                     }
             }
 
@@ -134,7 +157,25 @@ component displayname="userdetails"
             {
                 try 
                     {
-                        local.result = queryExecute("SELECT * FROM users");
+                        local.result = queryExecute("SELECT 
+                                                        user.id AS id, 
+                                                        user.first_name AS first_name, 
+                                                        user.last_name AS last_name, 
+                                                        user.address AS address, 
+                                                        user.email AS email, 
+                                                        user.phone AS phone, 
+                                                        user.dob AS dob, 
+                                                        GROUP_CONCAT(roles.roles) AS roles 
+                                                    FROM 
+                                                        users AS user 
+                                                    INNER JOIN 
+                                                        user_roles 
+                                                    ON 
+                                                        user_roles.user_id = user.id 
+                                                    INNER JOIN 
+                                                        roles ON roles.id = user_roles.role_id 
+                                                    GROUP BY 
+                                                        user.id");
                         return local.result;	
                     }
                 catch(Exception e) 
